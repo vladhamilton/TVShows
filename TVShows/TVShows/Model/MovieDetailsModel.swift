@@ -28,3 +28,13 @@ struct MovieDetailsModel: Codable {
 struct Genre: Codable {
     let name: String?
 }
+
+extension MovieDetailsModel {
+    init() {
+        self.backdropPath = ""
+        self.genres = nil
+        self.overview = ""
+        self.releaseDate = ""
+        self.title = ""
+    }
+}

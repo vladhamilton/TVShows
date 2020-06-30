@@ -16,7 +16,7 @@ class DetailsViewController: BaseViewController {
     
     //MARK: - Variables
     var selectedMovie: Movie?
-    private var movie = MovieDetailsModel(backdropPath: nil, genres: [Genre](), overview: "", releaseDate: "", title: "")
+    private var movie = MovieDetailsModel()
     private var credits = CreditsModel(cast: [Cast](), crew: [Crew]())
     
     //MARK: - Outlets
@@ -43,22 +43,26 @@ class DetailsViewController: BaseViewController {
     
     private func getMovieDetails() {
         showActivityIndicator(true)
-        NetworkService().getMovieDetails(id: (selectedMovie?.id)!) { [weak self] (movie) in
-            self?.movie = movie
-            if let poster = movie.backdropPath {
-                self?.posterImageView.downloaded(from: Constants.imageBaseURL + poster, contentMode: .scaleAspectFill)
+        if let selectedMovieId = selectedMovie?.id {
+            NetworkService().getMovieDetails(id: selectedMovieId) { [weak self] (movie) in
+                self?.movie = movie
+                if let poster = movie.backdropPath {
+                    self?.posterImageView.downloaded(from: Constants.imageBaseURL + poster, contentMode: .scaleAspectFill)
+                }
+                self?.tableView.reloadData()
+                self?.showActivityIndicator(false)
             }
-            self?.tableView.reloadData()
-            self?.showActivityIndicator(false)
         }
         getCredits()
     }
     
     private func getCredits() {
-        NetworkService().getCredits(id: (selectedMovie?.id)!) { [weak self] (credits) in
-            self?.credits = credits
-            self?.tableView.reloadData()
-            self?.showActivityIndicator(false)
+        if let selectedMovieId = selectedMovie?.id {
+            NetworkService().getCredits(id: selectedMovieId) { [weak self] (credits) in
+                self?.credits = credits
+                self?.tableView.reloadData()
+                self?.showActivityIndicator(false)
+            }
         }
     }
 }
@@ -75,25 +79,35 @@ extension DetailsViewController: UITableViewDataSource, UITableViewDelegate {
         if let tableSection = TableSection(rawValue: indexPath.section) {
             switch tableSection {
             case .releaseDate:
-                cell.configureCell(with: (movie.releaseDate)!)
+                if let movieReleaseDate = movie.releaseDate {
+                    cell.configureCell(with: movieReleaseDate)
+                }
             case .genres:
-                let array = movie.genres!.map({$0.name!})
-                cell.configureCell(with: convertToString(from: array))
+                if let movieGenres = movie.genres {
+                    let array = movieGenres.map({$0.name ?? "Name"})
+                    cell.configureCell(with: convertToString(from: array))
+                }
             case .directors:
                 var tempArray = [Crew]()
-                credits.crew!.forEach { (element) in
-                    if element.job == "Director" {
-                        tempArray.append(element)
+                if let creditsCrew = credits.crew {
+                    creditsCrew.forEach { (element) in
+                        if element.job == "Director" {
+                            tempArray.append(element)
+                        }
                     }
                 }
-                let array = tempArray.map({$0.name!})
+                let array = tempArray.map({$0.name ?? "Name"})
                 cell.configureCell(with: convertToString(from: array))
             case .cast:
-                let array = credits.cast!.map({$0.name!})
-                let firstTenElements = Array(array.prefix(10))
-                cell.configureCell(with: convertToString(from: firstTenElements))
+                if let creditsCast = credits.cast {
+                    let array = creditsCast.map({$0.name ?? "Name"})
+                    let firstTenElements = Array(array.prefix(10))
+                    cell.configureCell(with: convertToString(from: firstTenElements))
+                }
             case .fullDescription:
-                cell.configureCell(with: (movie.overview)!)
+                if let movieOverview = movie.overview {
+                    cell.configureCell(with: movieOverview)
+                }
             }
         }
         return cell
